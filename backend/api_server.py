@@ -1,13 +1,14 @@
 # api_server.py
+import logging
 import os
 import subprocess
 import threading
 import time
 import zipfile
-import logging
 from pathlib import Path
 
-from fastapi import FastAPI, File as FastAPIFile, HTTPException, Query, UploadFile
+from fastapi import FastAPI, HTTPException, Query, UploadFile
+from fastapi import File as FastAPIFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -35,6 +36,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+UPLOAD_FILES_PARAM = FastAPIFile(...)
+
 
 class InferenceRequest(BaseModel):
     clip_name: str
@@ -84,6 +88,7 @@ def _get_clip_or_404(clip_name: str):
 def _output_root_for_clip(clip_name: str) -> Path:
     clip = _get_clip_or_404(clip_name)
     return Path(clip.root_path) / "Output"
+
 
 clips_cache = {}  # clip_name -> ClipEntry (refresh via /scan)
 
@@ -310,6 +315,7 @@ def _ensure_clip_output_scaffold(clip_root: Path) -> None:
     ]:
         (clip_root / rel).mkdir(parents=True, exist_ok=True)
 
+
 def worker_loop():
     while True:
         job = queue.next_job()
@@ -325,13 +331,29 @@ def worker_loop():
 
             if job.job_type == JobType.INFERENCE:
                 p = InferenceParams.from_dict(job.params)
-                service.run_inference(clip, p, job=job, on_progress=queue.report_progress, on_warning=queue.report_warning)
+                service.run_inference(
+                    clip,
+                    p,
+                    job=job,
+                    on_progress=queue.report_progress,
+                    on_warning=queue.report_warning,
+                )
                 # Warm previews immediately after inference so Section 3 has media without extra user actions.
                 _warm_sequence_previews(job.clip_name)
             elif job.job_type == JobType.GVM_ALPHA:
-                service.run_gvm(clip, job=job, on_progress=queue.report_progress, on_warning=queue.report_warning)
+                service.run_gvm(
+                    clip,
+                    job=job,
+                    on_progress=queue.report_progress,
+                    on_warning=queue.report_warning,
+                )
             elif job.job_type == JobType.VIDEOMAMA_ALPHA:
-                service.run_videomama(clip, job=job, on_progress=queue.report_progress, on_warning=queue.report_warning)
+                service.run_videomama(
+                    clip,
+                    job=job,
+                    on_progress=queue.report_progress,
+                    on_warning=queue.report_warning,
+                )
 
             queue.complete_job(job)
         except Exception as e:
@@ -340,10 +362,12 @@ def worker_loop():
             else:
                 queue.fail_job(job, str(e))
 
+
 @app.on_event("startup")
 def startup():
     t = threading.Thread(target=worker_loop, daemon=True)
     t.start()
+
 
 @app.get("/health")
 def health():
@@ -353,6 +377,7 @@ def health():
 @app.get("/capabilities")
 def capabilities():
     return _detect_capabilities()
+
 
 @app.post("/scan")
 def scan(clips_dir: str):
@@ -399,7 +424,7 @@ def get_clips_tree(
 @app.post("/uploads")
 async def upload_clips(
     clips_dir: str = Query(..., description="Path to clips root, e.g. /app/ClipsForInference"),
-    files: list[UploadFile] = FastAPIFile(...),
+    files: list[UploadFile] = UPLOAD_FILES_PARAM,
 ):
     root = Path(clips_dir)
     root.mkdir(parents=True, exist_ok=True)
@@ -412,11 +437,13 @@ async def upload_clips(
         dest = _dedupe_destination_path(root, file.filename)
         content = await file.read()
         dest.write_bytes(content)
-        saved.append({
-            "original_name": file.filename,
-            "saved_name": dest.name,
-            "size_bytes": len(content),
-        })
+        saved.append(
+            {
+                "original_name": file.filename,
+                "saved_name": dest.name,
+                "size_bytes": len(content),
+            }
+        )
 
     # Organize immediately so uploads appear as clips and required dirs exist.
     organize_clips(clips_dir)
@@ -432,6 +459,7 @@ async def upload_clips(
         "files": saved,
         "clip_count": len(clips),
     }
+
 
 @app.post("/jobs/inference")
 def enqueue_inference(req: InferenceRequest):
@@ -484,6 +512,7 @@ def get_job(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return _serialize_job(job)
+
 
 @app.post("/jobs/{job_id}/cancel")
 def cancel(job_id: str):
@@ -605,7 +634,11 @@ def download_output_sequence(clip_name: str, subdir: str):
     if not zip_path.exists():
         raise HTTPException(status_code=500, detail="Failed to prepare sequence archive")
 
-    return FileResponse(path=str(zip_path), filename=f"{safe_subdir.lower()}_sequence.zip", media_type="application/zip")
+    return FileResponse(
+        path=str(zip_path),
+        filename=f"{safe_subdir.lower()}_sequence.zip",
+        media_type="application/zip",
+    )
 
 
 @app.get("/outputs/{clip_name}/download")
