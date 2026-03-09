@@ -89,7 +89,7 @@ export default function Home() {
   const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
   const [files, setFiles] = useState<File[]>([]);
-  const [clipsDir, setClipsDir] = useState("/app/ClipsForInference");
+  const [clipsDir] = useState("/app/ClipsForInference");
   const [clips, setClips] = useState<ClipInfo[]>([]);
   const [jobId, setJobId] = useState<string | null>(null);
   const [stage, setStage] = useState<WorkflowStage>("idle");

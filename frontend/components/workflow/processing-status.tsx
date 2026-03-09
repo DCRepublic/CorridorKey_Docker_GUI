@@ -52,8 +52,8 @@ export function ProcessingStatus({
     <section className="band reveal reveal-3">
       <h2>2. Process</h2>
       <p>
-        Hit "Start Processing" to check all uploaded clips for processing. Only
-        unprocessed clips will be submitted for processing.
+        Hit &quot;Start Processing&quot; to check all uploaded clips for
+        processing. Only unprocessed clips will be submitted for processing.
       </p>
 
       {capabilities && (
