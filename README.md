@@ -4,6 +4,9 @@ Many thanks to @nikopueringer and the Corridor Crew for making all of this code 
 
 This is a fork of CorridorKey containing a simple web interface and one command deployment for systems running docker. The UI is by no means final and only serves as a easy one click deployment to access some of the basic features. A full UI rewrite and proper design with a designer would be very welcome and I would be happy to work with anyone on this.
 
+![Ui Image 1](frontend/public/ui_1.png)
+![Ui Image 2](frontend/public/ui_2.png)
+
 Currently the system operates as follows:
 
 - CorridorKey docker container builds, intalling packages and downloading CorridorKey model and GVM if `DOWNLOAD_GVM` is set to true in docker-compose-web.yml
