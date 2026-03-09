@@ -15,3 +15,5 @@ Output/
 CorridorKeyModule/checkpoints/
 gvm_core/weights/
 VideoMaMaInferenceModule/checkpoints/
+
+frontend

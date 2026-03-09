@@ -1,6 +1,7 @@
 """Centralized cross-platform device selection for CorridorKey."""
 
 import os
+import re
 
 import torch
 
@@ -8,10 +9,47 @@ DEVICE_ENV_VAR = "CORRIDORKEY_DEVICE"
 VALID_DEVICES = ("auto", "cuda", "mps", "cpu")
 
 
+def _cuda_arch_supported() -> tuple[bool, str | None]:
+    """Check whether the current GPU architecture is supported by this PyTorch build.
+
+    Returns:
+        (is_supported, reason_if_not_supported)
+    """
+    if not torch.cuda.is_available():
+        return False, "CUDA is not available"
+
+    try:
+        major, minor = torch.cuda.get_device_capability(0)
+        current_arch = major * 10 + minor
+        supported_arches = []
+        for arch in torch.cuda.get_arch_list():
+            # Expected format: "sm_90"
+            m = re.match(r"sm_(\d+)", arch)
+            if m:
+                supported_arches.append(int(m.group(1)))
+
+        if not supported_arches:
+            return True, None
+
+        if current_arch not in supported_arches:
+            gpu_name = torch.cuda.get_device_name(0)
+            return (
+                False,
+                f"GPU '{gpu_name}' reports sm_{current_arch}, but this PyTorch build supports "
+                f"{', '.join(f'sm_{a}' for a in supported_arches)}",
+            )
+        return True, None
+    except Exception as exc:
+        # If probing fails, keep prior behavior and allow CUDA.
+        return True, f"CUDA arch probe failed: {exc}"
+
+
 def detect_best_device() -> str:
     """Auto-detect best available device: CUDA > MPS > CPU."""
     if torch.cuda.is_available():
-        return "cuda"
+        supported, _reason = _cuda_arch_supported()
+        if supported:
+            return "cuda"
     if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         return "mps"
     return "cpu"
@@ -47,6 +85,12 @@ def resolve_device(requested: str | None = None) -> str:
         if not torch.cuda.is_available():
             raise RuntimeError(
                 "CUDA requested but torch.cuda.is_available() is False. Install a CUDA-enabled PyTorch build."
+            )
+        supported, reason = _cuda_arch_supported()
+        if not supported:
+            raise RuntimeError(
+                f"CUDA requested but GPU architecture is unsupported by this PyTorch build: {reason}. "
+                "Install a PyTorch build that supports your GPU architecture or use --device cpu."
             )
     elif device == "mps":
         if not hasattr(torch.backends, "mps"):

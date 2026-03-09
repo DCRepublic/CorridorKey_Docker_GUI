@@ -1,0 +1,42 @@
+services:
+  corridorkey:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: corridorkey:latest
+    environment:
+      DOWNLOAD_GVM: true
+      OPENCV_IO_ENABLE_OPENEXR: "1"
+    entrypoint: ["sh", "./entrypoint.sh"]
+    ports: 
+      - "8000:8000"
+    networks: 
+      - internal
+    volumes:
+      - ./ClipsForInference:/app/ClipsForInference
+      - ./Output:/app/Output
+      - ./CorridorKeyModule/checkpoints:/app/CorridorKeyModule/checkpoints
+      - ./gvm_core/weights:/app/gvm_core/weights
+      - ./VideoMaMaInferenceModule/checkpoints:/app/VideoMaMaInferenceModule/checkpoints
+    gpus: all
+    stdin_open: true
+    tty: true
+    
+  
+  corridorkey-web:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    image: corridorkey-web:latest
+    environment:
+      OPENCV_IO_ENABLE_OPENEXR: "1"
+    depends_on:
+      - corridorkey
+    networks: 
+      - internal
+    ports:
+      - "3000:3000"
+
+
+networks:
+  internal:

@@ -712,7 +712,7 @@ class CorridorKeyService:
 
         # State transition — only set COMPLETE if full clip was processed
         is_full_clip = frame_range is None or (frame_range[0] == 0 and frame_range[1] >= num_frames - 1)
-        if processed == range_count and is_full_clip:
+        if processed == range_count and is_full_clip and clip.state != ClipState.COMPLETE:
             try:
                 clip.transition_to(ClipState.COMPLETE)
             except Exception as e:

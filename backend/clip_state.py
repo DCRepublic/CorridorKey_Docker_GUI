@@ -347,18 +347,17 @@ class ClipEntry:
                 self.state = ClipState.COMPLETE
                 return
 
-        # READY: AlphaHint must cover ALL input frames (not partial)
+        # READY: any AlphaHint frames exist (run_inference already handles mismatches by truncation).
         if self.alpha_asset is not None:
             if self.input_asset is not None and self.alpha_asset.frame_count < self.input_asset.frame_count:
-                # Partial alpha — don't promote to READY, fall through
+                # Partial alpha often happens due probe/count variance on first pass.
                 logger.info(
                     f"Clip '{self.name}': partial alpha "
                     f"({self.alpha_asset.frame_count}/{self.input_asset.frame_count}), "
-                    f"staying at lower state"
+                    f"promoting to READY and inference will truncate safely"
                 )
-            else:
-                self.state = ClipState.READY
-                return
+            self.state = ClipState.READY
+            return
 
         if self.mask_asset is not None:
             self.state = ClipState.MASKED
