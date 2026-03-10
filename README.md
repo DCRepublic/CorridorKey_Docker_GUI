@@ -1,6 +1,6 @@
 # Attention!
 
-**This repo was designed as a quick test and is by means a final product, stay tuned for a proper UI/UX!**
+**This repo was designed as a quick test and is by no means a final product, stay tuned for a proper UI/UX!**
 
 Many thanks to @nikopueringer and the Corridor Crew for making all of this code open source!
 
