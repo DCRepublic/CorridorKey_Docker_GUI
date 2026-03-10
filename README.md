@@ -1,5 +1,7 @@
 # Attention!
 
+**This repo was designed as a quick test and is by means a final product, stay tuned for a proper UI/UX!**
+
 Many thanks to @nikopueringer and the Corridor Crew for making all of this code open source!
 
 This is a fork of CorridorKey containing a simple web interface and one command deployment for systems running docker. The UI is by no means final and only serves as a easy one click deployment to access some of the basic features. A full UI rewrite and proper design with a designer would be very welcome and I would be happy to work with anyone on this.
